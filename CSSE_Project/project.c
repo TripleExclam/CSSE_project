@@ -16,8 +16,10 @@
 #include "buttons.h"
 #include "serialio.h"
 #include "terminalio.h"
+#include "lives.h"
 #include "score.h"
 #include "timer0.h"
+#include "seven_seg.h"
 #include "game.h"
 
 #define F_CPU 8000000L
@@ -30,6 +32,7 @@ void splash_screen(void);
 void new_game(void);
 void play_game(void);
 void handle_game_over(void);
+
 
 // ASCII code for Escape character
 #define ESCAPE_CHAR 27
@@ -62,8 +65,8 @@ void initialise_hardware(void) {
 	
 	// Initialise the seven_seg display, 
 	// with PORT A and PORT C pin 0 as outputs.
-	DDRA = 0xFF;
-	DDRC = 0x01;
+	// Initialise PORT C to output the number of lives
+	init_display();
 	
 	// Turn on global interrupts
 	sei();
@@ -107,6 +110,16 @@ void new_game(void) {
 	move_cursor(2,4);
 	printf_P(PSTR("Score: %lu"), get_score());
 	
+	// Initialise lives.
+	init_lives();
+	PORTC &= 1;
+	for (int8_t i = 0; i < get_lives(); i++) {
+		// Set the last four bits to the number of live -> 2^{lives}.
+		PORTC |= (1 << (4 + i));
+	}
+	move_cursor(2, 6);
+	printf_P(PSTR("You have %lu lives remaining."), get_lives());
+	
 	// Clear a button push or serial input if any are waiting
 	// (The cast to void means the return value is ignored.)
 	(void)button_pushed();
@@ -114,8 +127,6 @@ void new_game(void) {
 }
 
 void play_game(void) {
-	uint8_t seven_seg_data[10] = {63,6,91,79,102,109,125,7,127,111};
-	volatile uint8_t seven_seg_cc = 0;
 	uint32_t current_time, last_move_time, last_move_asteroid;
 	int8_t button;
 	char serial_input, escape_sequence_char;
@@ -190,6 +201,17 @@ void play_game(void) {
 		} else if(serial_input == 'p' || serial_input == 'P') {
 			// Unimplemented feature - pause/unpause the game until 'p' or 'P' is
 			// pressed again
+			toggle_timer();
+			while(1) {
+				if(serial_input_available()) {
+					// Serial data was available - read the data from standard input
+					serial_input = fgetc(stdin);
+					if (serial_input == 'p' || serial_input == 'P') {
+						break;
+					}
+				}
+			}
+			toggle_timer();
 		} 
 		// else - invalid input or we're part way through an escape sequence -
 		// do nothing
@@ -204,8 +226,8 @@ void play_game(void) {
 			last_move_time = current_time;
 		}
 
-		if(current_time >= last_move_asteroid + 1000) {
-			// 4000ms (4 seconds) has passed since the last time we moved
+		if(current_time >= last_move_asteroid + 1000 - get_score() * 5) {
+			// 1000ms (1 seconds) has passed since the last time we moved
 			// the asteroids - move them - and keep track of the time we
 			// moved them
 			advance_asteroids();
@@ -218,34 +240,24 @@ void play_game(void) {
 		Wraps around at 100. The refresh rate is every 3 milliseconds. 
 		Might need to use above method to improve performance.
 		*/
-		if (current_time % 3 == 0) {
-			// Switch the digit
-			seven_seg_cc = 1 ^ seven_seg_cc;
-			if (seven_seg_cc == 0) {
-				// Set the first digit
-				PORTA = seven_seg_data[get_score() % 10];
-			} else {
-				// Set the second digit
-				PORTA = seven_seg_data[(get_score() / 10) % 10];
-			}
-			/* Output the digit selection (CC) bit */
-			PORTC = seven_seg_cc;
-		}
-		
+		set_value(get_score());
+		display_data(current_time);
 	}
 	// We get here if the game is over.
 }
 
 void handle_game_over() {
+	uint32_t current_time;
 	move_cursor(10,14);
 	printf_P(PSTR("GAME OVER"));
 	move_cursor(10,15);
 	printf_P(PSTR("Press a button to start again"));
 	while(button_pushed() == NO_BUTTON_PUSHED) {
-		// Turn off the seven seg.
-		PORTC = 0;
+		current_time = get_current_time();
+		display_data(current_time);
+		game_over_animation(current_time);
 	}
-	toggle_game_over();
+	init_lives();
 }
 
 

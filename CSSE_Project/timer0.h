@@ -25,6 +25,9 @@
  */
 void init_timer0(void);
 
+// Turn the timer on/off
+void toggle_timer(void);
+
 /* Return the current clock tick value - milliseconds since the timer was
  * initialised.
  */

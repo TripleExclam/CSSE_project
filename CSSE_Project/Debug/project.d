@@ -16,8 +16,8 @@ project.d project.o: .././project.c \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\stdio.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\lib\gcc\avr\5.4.0\include\stdarg.h \
  .././ledmatrix.h .././pixel_colour.h .././scrolling_char_display.h \
- .././buttons.h .././serialio.h .././terminalio.h .././score.h \
- .././timer0.h .././game.h \
+ .././buttons.h .././serialio.h .././terminalio.h .././lives.h \
+ .././score.h .././timer0.h .././seven_seg.h .././game.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\util\delay.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\util\delay_basic.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\math.h
@@ -66,9 +66,13 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\lib\
 
 .././terminalio.h:
 
+.././lives.h:
+
 .././score.h:
 
 .././timer0.h:
+
+.././seven_seg.h:
 
 .././game.h:
 

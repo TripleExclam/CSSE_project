@@ -40,10 +40,12 @@ C_SRCS +=  \
 ../buttons.c \
 ../game.c \
 ../ledmatrix.c \
+../lives.c \
 ../project.c \
 ../score.c \
 ../scrolling_char_display.c \
 ../serialio.c \
+../seven_seg.c \
 ../spi.c \
 ../terminalio.c \
 ../timer0.c
@@ -59,10 +61,12 @@ OBJS +=  \
 buttons.o \
 game.o \
 ledmatrix.o \
+lives.o \
 project.o \
 score.o \
 scrolling_char_display.o \
 serialio.o \
+seven_seg.o \
 spi.o \
 terminalio.o \
 timer0.o
@@ -71,10 +75,12 @@ OBJS_AS_ARGS +=  \
 buttons.o \
 game.o \
 ledmatrix.o \
+lives.o \
 project.o \
 score.o \
 scrolling_char_display.o \
 serialio.o \
+seven_seg.o \
 spi.o \
 terminalio.o \
 timer0.o
@@ -83,10 +89,12 @@ C_DEPS +=  \
 buttons.d \
 game.d \
 ledmatrix.d \
+lives.d \
 project.d \
 score.d \
 scrolling_char_display.d \
 serialio.d \
+seven_seg.d \
 spi.d \
 terminalio.d \
 timer0.d
@@ -95,10 +103,12 @@ C_DEPS_AS_ARGS +=  \
 buttons.d \
 game.d \
 ledmatrix.d \
+lives.d \
 project.d \
 score.d \
 scrolling_char_display.d \
 serialio.d \
+seven_seg.d \
 spi.d \
 terminalio.d \
 timer0.d
@@ -138,6 +148,13 @@ LINKER_SCRIPT_DEP+=
 	@echo Finished building: $<
 	
 
+./lives.o: .././lives.c
+	@echo Building file: $<
+	@echo Invoking: AVR/GNU C Compiler : 5.4.0
+	$(QUOTE)C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-gcc.exe$(QUOTE)  -x c -funsigned-char -funsigned-bitfields -DDEBUG  -I"C:\Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.209\include"  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -g2 -Wall -mmcu=atmega324a -B "C:\Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.209\gcc\dev\atmega324a" -c -std=gnu99 -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
+	@echo Finished building: $<
+	
+
 ./project.o: .././project.c
 	@echo Building file: $<
 	@echo Invoking: AVR/GNU C Compiler : 5.4.0
@@ -160,6 +177,13 @@ LINKER_SCRIPT_DEP+=
 	
 
 ./serialio.o: .././serialio.c
+	@echo Building file: $<
+	@echo Invoking: AVR/GNU C Compiler : 5.4.0
+	$(QUOTE)C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-gcc.exe$(QUOTE)  -x c -funsigned-char -funsigned-bitfields -DDEBUG  -I"C:\Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.209\include"  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -g2 -Wall -mmcu=atmega324a -B "C:\Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.209\gcc\dev\atmega324a" -c -std=gnu99 -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
+	@echo Finished building: $<
+	
+
+./seven_seg.o: .././seven_seg.c
 	@echo Building file: $<
 	@echo Invoking: AVR/GNU C Compiler : 5.4.0
 	$(QUOTE)C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-gcc.exe$(QUOTE)  -x c -funsigned-char -funsigned-bitfields -DDEBUG  -I"C:\Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.209\include"  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -g2 -Wall -mmcu=atmega324a -B "C:\Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.209\gcc\dev\atmega324a" -c -std=gnu99 -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 

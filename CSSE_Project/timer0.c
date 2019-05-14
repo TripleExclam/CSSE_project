@@ -16,6 +16,8 @@
 /* Our internal clock tick count - incremented every 
  * millisecond. Will overflow every ~49 days. */
 static volatile uint32_t clockTicks;
+// Enables us to pause the clock.
+volatile uint8_t stopwatch_timing;
 
 /* Set up timer 0 to generate an interrupt every 1ms. 
  * We will divide the clock by 64 and count up to 124.
@@ -30,6 +32,8 @@ void init_timer0(void) {
 	 * constant. 
 	 */
 	clockTicks = 0L;
+	// Enable clockTicks to count.
+	stopwatch_timing = 1;
 	
 	/* Clear the timer */
 	TCNT0 = 0;
@@ -56,6 +60,13 @@ void init_timer0(void) {
 	TIFR0 &= (1<<OCF0A);
 }
 
+
+// Turn the timer on/off. Whilst interrupts will still flag
+// Nothing will happen.
+void toggle_timer(void) {
+	stopwatch_timing = 1 - stopwatch_timing;
+}
+
 uint32_t get_current_time(void) {
 	uint32_t returnValue;
 
@@ -75,5 +86,7 @@ uint32_t get_current_time(void) {
 
 ISR(TIMER0_COMPA_vect) {
 	/* Increment our clock tick count */
-	clockTicks++;
+	if (stopwatch_timing) {
+		clockTicks++;
+	}
 }

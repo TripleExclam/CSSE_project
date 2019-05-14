@@ -8,6 +8,8 @@ game.c
 
 ledmatrix.c
 
+lives.c
+
 project.c
 
 score.c
@@ -15,6 +17,8 @@ score.c
 scrolling_char_display.c
 
 serialio.c
+
+seven_seg.c
 
 spi.c
 

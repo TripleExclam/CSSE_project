@@ -5,7 +5,10 @@
 **
 */
 
+#include "scrolling_char_display.h"
+#include "timer0.h"
 #include "terminalio.h"
+#include "lives.h"
 #include "score.h"
 #include "game.h"
 #include "ledmatrix.h"
@@ -55,8 +58,6 @@ However, this carries performance cost. This way uses more memory.*/
 ///////////////////////////////////////////////////////////
 // Global variables.
 //
-// game_over - Is the game over -> 1. else 0
-//
 // basePosition - stores the x position of the centre point of the 
 // base station. The base station is three positions wide, but is
 // permitted to partially move off the game field so that the centre
@@ -78,7 +79,6 @@ However, this carries performance cost. This way uses more memory.*/
 // y position. The array is indexed by asteroid number from 0 to 
 // numAsteroids - 1.
 
-int8_t		game_over = 0;
 int8_t		basePosition;
 int8_t		numProjectiles;
 uint8_t		projectiles[MAX_PROJECTILES];
@@ -108,6 +108,7 @@ static void add_asteroid();
 // Redraw functions
 static void redraw_whole_display(void);
 static void redraw_base(uint8_t colour);
+static void redraw_hit_base(void);
 static void redraw_all_asteroids(void);
 static void redraw_asteroid(uint8_t asteroidNumber, uint8_t colour);
 static void redraw_all_projectiles(void);
@@ -180,7 +181,11 @@ int8_t move_base(int8_t direction) {
 	// We don't need to check the middle as it is impossible to reach.
 	if (asteroid_at(basePosition, 1) != -1 ||  asteroid_at(basePosition - 1, 0) != -1 
 	|| asteroid_at(basePosition + 1, 0) != -1) {
-		toggle_game_over();
+		subtract_life();
+		remove_asteroid(asteroid_at(basePosition + 1, 1));
+		remove_asteroid(asteroid_at(basePosition - 1, 0));
+		remove_asteroid(asteroid_at(basePosition + 1, 0));
+		redraw_hit_base();
 	}
 	
 	// Redraw the base
@@ -262,7 +267,9 @@ void advance_asteroids(void) {
 				}
 				// If the asteroid collides with the base, handle the event.
 				if (base_at(x, y)) {
-					toggle_game_over();
+					subtract_life();
+					remove_asteroid(asteroidNumber);
+					redraw_hit_base();
 				}
 			}
 		}
@@ -329,15 +336,25 @@ void advance_projectiles(void) {
 
 // Returns 1 if the game is over, 0 otherwise.
 int8_t is_game_over(void) {
-	return game_over;
+	return (get_lives() == 0);
 }
 
 
 /******** INTERNAL FUNCTIONS ****************/
 
 // Change the state of game over
-void toggle_game_over() {
-	game_over = 1 - game_over;
+void subtract_life() {
+	if (get_lives() != 0) {
+		add_to_lives(-1);
+	}
+	// Reset the last seven bits.
+	PORTC &= 1;
+	for (int8_t i = 0; i < get_lives(); i++) {
+		// Set the last four bits to the number of live -> 2^{lives}.
+		PORTC |= (1 << (4 + i));
+	}
+	move_cursor(2, 6);
+	printf_P(PSTR("You have %lu lives remaining."), get_lives());
 }
 
 
@@ -349,7 +366,7 @@ static int8_t base_at(uint8_t x, uint8_t y) {
 	}
 	
 	if (x == basePosition) {
-		// This can occure for both y = 1 and y = 0.
+		// This can occur for both y = 1 and y = 0.
 		return 1;
 	} else if (y == 0) {
 		// Check the sides of the base.
@@ -415,7 +432,7 @@ static void remove_asteroid(int8_t asteroidNumber) {
 	numAsteroids--;
 }
 
-// Add an asteroid into the display, somehwere in the top two rows.
+// Add an asteroid into the display, somewhere in the top two rows.
 static void add_asteroid() {
 	uint8_t x, y;
 	// Generate random position that does not already
@@ -459,6 +476,21 @@ static void remove_projectile(int8_t projectileNumber) {
 }
 
 
+void game_over_animation(uint32_t current_time) {
+	static uint32_t previous_time;
+	static uint8_t animation_number;
+	if (current_time > previous_time + 100 && animation_number <= 16) {
+		ledmatrix_shift_display_right();
+		previous_time = current_time;
+		animation_number++;
+	} else if (animation_number == 16) {
+		set_scrolling_display_text("GAME OVER NERD", COLOUR_GREEN);
+		animation_number++;
+	} else if (current_time > previous_time + 100 && scroll_display()) {
+		previous_time = current_time;
+	} 
+}
+
 // Remove the projectile and asteroid when they collide. Incrementing score.
 // Sound effects can be handled here as well.
 static void handle_collision(int8_t asteroidIndex, int8_t projectileIndex) {
@@ -496,6 +528,26 @@ static void redraw_base(uint8_t colour){
 		}
 	}
 	ledmatrix_update_pixel(LED_MATRIX_POSN_FROM_XY(basePosition, 1), colour);
+}
+
+
+static void redraw_hit_base(void) {
+	// Write a new timer function to handle this, if you don't want to use sound.
+	// Have the game pause and the base flicker when it is hit
+	uint32_t start_time = get_current_time();
+	uint32_t current_time = start_time;
+	uint32_t flicker_time = start_time;
+	while(current_time < start_time + 2000) {
+		current_time = get_current_time();
+		if (current_time >= flicker_time + 500) {
+			redraw_base(COLOUR_BASE);
+		} 
+		if (current_time >= flicker_time + 1000) {
+			redraw_base(COLOUR_BLACK);
+			flicker_time = current_time;
+		}
+	}
+	redraw_base(COLOUR_BASE);
 }
 
 

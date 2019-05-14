@@ -54,7 +54,10 @@ void advance_projectiles(void);
 // Returns 1 if the game is over, 0 otherwise
 int8_t is_game_over(void);
 
-// Changes the state of a game_over variable.
-void toggle_game_over();
+// Changes the state of the lives variable.
+void subtract_life();
+
+// Fancy game over stuff
+void game_over_animation(uint32_t current_time);
 
 #endif
