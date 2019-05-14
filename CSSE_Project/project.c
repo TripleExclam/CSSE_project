@@ -3,7 +3,7 @@
  *
  * Main file
  *
- * Author: Peter Sutton. Modified by <YOUR NAME HERE>
+ * Author: Peter Sutton. Modified by Matt Burton
  */ 
 
 #include <avr/io.h>
@@ -24,7 +24,7 @@
 #include <util/delay.h>
 
 // Function prototypes - these are defined below (after main()) in the order
-// given here
+// given here.
 void initialise_hardware(void);
 void splash_screen(void);
 void new_game(void);
@@ -60,6 +60,11 @@ void initialise_hardware(void) {
 	
 	init_timer0();
 	
+	// Initialise the seven_seg display, 
+	// with PORT A and PORT C pin 0 as outputs.
+	DDRA = 0xFF;
+	DDRC = 0x01;
+	
 	// Turn on global interrupts
 	sei();
 }
@@ -70,17 +75,17 @@ void splash_screen(void) {
 	move_cursor(10,10);
 	printf_P(PSTR("Asteroids"));
 	move_cursor(10,12);
-	printf_P(PSTR("CSSE2010/7201 project by <your name here>"));
+	printf_P(PSTR("CSSE2010/7201 project by Matthew Burton"));
 	
 	// Output the scrolling message to the LED matrix
 	// and wait for a push button to be pushed.
 	ledmatrix_clear();
 	while(1) {
-		set_scrolling_display_text("ASTEROIDS", COLOUR_GREEN);
+		set_scrolling_display_text("ASTEROIDS MATTHEW BURTON S45293867", COLOUR_GREEN);
 		// Scroll the message until it has scrolled off the 
 		// display or a button is pushed
 		while(scroll_display()) {
-			_delay_ms(150);
+			_delay_ms(125);
 			if(button_pushed() != NO_BUTTON_PUSHED) {
 				return;
 			}
@@ -94,9 +99,13 @@ void new_game(void) {
 	
 	// Clear the serial terminal
 	clear_terminal();
+	move_cursor(2,2);
+	printf_P(PSTR("Asteroids"));
 	
 	// Initialise the score
 	init_score();
+	move_cursor(2,4);
+	printf_P(PSTR("Score: %lu"), get_score());
 	
 	// Clear a button push or serial input if any are waiting
 	// (The cast to void means the return value is ignored.)
@@ -105,7 +114,9 @@ void new_game(void) {
 }
 
 void play_game(void) {
-	uint32_t current_time, last_move_time;
+	uint8_t seven_seg_data[10] = {63,6,91,79,102,109,125,7,127,111};
+	volatile uint8_t seven_seg_cc = 0;
+	uint32_t current_time, last_move_time, last_move_asteroid;
 	int8_t button;
 	char serial_input, escape_sequence_char;
 	uint8_t characters_into_escape_sequence = 0;
@@ -114,6 +125,7 @@ void play_game(void) {
     // were moved.
 	current_time = get_current_time();
 	last_move_time = current_time;
+	last_move_asteroid = current_time;
 	
 	// We play the game until it's over
 	while(!is_game_over()) {
@@ -183,7 +195,7 @@ void play_game(void) {
 		// do nothing
 		
 		current_time = get_current_time();
-		if(!is_game_over() && current_time >= last_move_time + 500) {
+		if(!is_game_over() && current_time >= last_move_time + 200) {
 			// 500ms (0.5 second) has passed since the last time we moved
 			// the projectiles - move them - and keep track of the time we 
 			// moved them
@@ -191,6 +203,35 @@ void play_game(void) {
 			
 			last_move_time = current_time;
 		}
+
+		if(current_time >= last_move_asteroid + 1000) {
+			// 4000ms (4 seconds) has passed since the last time we moved
+			// the asteroids - move them - and keep track of the time we
+			// moved them
+			advance_asteroids();
+			
+			last_move_asteroid = current_time;
+		}
+		
+		
+		/* Displays the score on the seven segment display. 
+		Wraps around at 100. The refresh rate is every 3 milliseconds. 
+		Might need to use above method to improve performance.
+		*/
+		if (current_time % 3 == 0) {
+			// Switch the digit
+			seven_seg_cc = 1 ^ seven_seg_cc;
+			if (seven_seg_cc == 0) {
+				// Set the first digit
+				PORTA = seven_seg_data[get_score() % 10];
+			} else {
+				// Set the second digit
+				PORTA = seven_seg_data[(get_score() / 10) % 10];
+			}
+			/* Output the digit selection (CC) bit */
+			PORTC = seven_seg_cc;
+		}
+		
 	}
 	// We get here if the game is over.
 }
@@ -201,7 +242,10 @@ void handle_game_over() {
 	move_cursor(10,15);
 	printf_P(PSTR("Press a button to start again"));
 	while(button_pushed() == NO_BUTTON_PUSHED) {
-		; // wait
+		// Turn off the seven seg.
+		PORTC = 0;
 	}
-	
+	toggle_game_over();
 }
+
+

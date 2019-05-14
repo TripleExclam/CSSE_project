@@ -43,11 +43,18 @@ int8_t move_base(int8_t direction);
 // the maximum number of projectiles in flight has been reached.
 int8_t fire_projectile(void);
 
+// Advance the asteroids. Any asteroids that
+// are hit or fall exit the screen are destroyed.
+void advance_asteroids(void);
+
 // Advance the projectiles that have been fired. Any projectiles that
 // go off the top or that hit an asteroid are removed.
 void advance_projectiles(void);
 
 // Returns 1 if the game is over, 0 otherwise
 int8_t is_game_over(void);
+
+// Changes the state of a game_over variable.
+void toggle_game_over();
 
 #endif
