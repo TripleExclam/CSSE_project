@@ -5,12 +5,16 @@
 **
 */
 
+#include "seven_seg.h"
 #include "scrolling_char_display.h"
 #include "timer0.h"
 #include "terminalio.h"
+#include "serialio.h"
+#include "buttons.h"
 #include "lives.h"
 #include "score.h"
 #include "game.h"
+#include "sound.h"
 #include "ledmatrix.h"
 #include "pixel_colour.h"
 #include <stdlib.h>
@@ -166,23 +170,25 @@ int8_t move_base(int8_t direction) {
 	// We erase the base from its current position first
 	redraw_base(COLOUR_BLACK);
 	
-	if (direction == MOVE_LEFT) {
+	if (direction == MOVE_LEFT && basePosition != 0) {
 		// Check if the user wants to move left
-		if (basePosition != 0) {
-			// Check bounds -> move left.
-			basePosition--;
-		}
-	} else if (basePosition != 7){
+		// Check bounds -> move left.
+		basePosition--;
+	} else if (direction == MOVE_RIGHT && basePosition != 7){
 		// Assume right press, check bounds -> move right.
 		basePosition++;
+	} else {
+		redraw_base(COLOUR_BASE);
+		return 0;
 	}
+	
 	
 	// Check if the base is being moved into an asteroid. 
 	// We don't need to check the middle as it is impossible to reach.
 	if (asteroid_at(basePosition, 1) != -1 ||  asteroid_at(basePosition - 1, 0) != -1 
 	|| asteroid_at(basePosition + 1, 0) != -1) {
 		subtract_life();
-		remove_asteroid(asteroid_at(basePosition + 1, 1));
+		remove_asteroid(asteroid_at(basePosition, 1));
 		remove_asteroid(asteroid_at(basePosition - 1, 0));
 		remove_asteroid(asteroid_at(basePosition + 1, 0));
 		redraw_hit_base();
@@ -194,6 +200,8 @@ int8_t move_base(int8_t direction) {
 	return 1;
 }
 
+
+
 // Fire projectile - add it immediately above the base
 // station, provided there is not already a projectile
 // there. We are also limited in the number of projectiles
@@ -202,6 +210,7 @@ int8_t move_base(int8_t direction) {
 int8_t fire_projectile(void) {
 	uint8_t newProjectileNumber;
 	uint8_t asteroidLocation;
+	
 	if(numProjectiles < MAX_PROJECTILES && 
 			projectile_at(basePosition, 2) == -1) {
 		// Have space to add projectile - add it at the x position of
@@ -238,6 +247,9 @@ void advance_asteroids(void) {
 			// Work out the new position (but don't update the asteroid
 			// location yet - we only do that if we know the move is valid)
 			y = y - 1;
+			if (asteroid_at(x, y) != -1) {
+				y = y + 1;
+			}
 			
 			// Check if new position would be off the bottom of the display
 			if(y == -1) {
@@ -252,6 +264,11 @@ void advance_asteroids(void) {
 				projectile_location = projectile_at(x, y);
 				if (projectile_location != -1) {
 					handle_collision(asteroidNumber, projectile_location);
+				} else if (base_at(x, y)) {
+					// If the asteroid collides with the base, handle the event.
+					subtract_life();
+					remove_asteroid(asteroidNumber);
+					redraw_hit_base();
 				} else {
 					// Remove the asteroid from the display
 					redraw_asteroid(asteroidNumber, COLOUR_BLACK);
@@ -264,12 +281,6 @@ void advance_asteroids(void) {
 					
 					// Move on to the next asteroid
 					asteroidNumber++;
-				}
-				// If the asteroid collides with the base, handle the event.
-				if (base_at(x, y)) {
-					subtract_life();
-					remove_asteroid(asteroidNumber);
-					redraw_hit_base();
 				}
 			}
 		}
@@ -349,9 +360,10 @@ void subtract_life() {
 	}
 	// Reset the last seven bits.
 	PORTC &= 1;
-	for (int8_t i = 0; i < get_lives(); i++) {
+	// Does the lights in the right order.
+	for (int8_t i = 1; i < get_lives() + 1; i++) {
 		// Set the last four bits to the number of live -> 2^{lives}.
-		PORTC |= (1 << (4 + i));
+		PORTC |= (1 << (7 - i));
 	}
 	move_cursor(2, 6);
 	printf_P(PSTR("You have %lu lives remaining."), get_lives());
@@ -476,19 +488,31 @@ static void remove_projectile(int8_t projectileNumber) {
 }
 
 
-void game_over_animation(uint32_t current_time) {
+uint8_t game_over_animation(uint32_t current_time, uint8_t animation_number) {
 	static uint32_t previous_time;
-	static uint8_t animation_number;
-	if (current_time > previous_time + 100 && animation_number <= 16) {
+	if (current_time > previous_time + 100 && animation_number == 1) {
 		ledmatrix_shift_display_right();
 		previous_time = current_time;
-		animation_number++;
-	} else if (animation_number == 16) {
+		return 1;
+	} else if (animation_number == 2) {
 		set_scrolling_display_text("GAME OVER NERD", COLOUR_GREEN);
-		animation_number++;
-	} else if (current_time > previous_time + 100 && scroll_display()) {
+		return 1;
+	} else if (current_time > previous_time + 100 && scroll_display() 
+	&& animation_number == 3) {
 		previous_time = current_time;
-	} 
+		return 1;
+	} else if (current_time > previous_time + 100 && animation_number == 3) {
+		previous_time = current_time;
+		return 1;
+	} else if (animation_number == 4) {
+		set_scrolling_display_text("GG", COLOUR_GREEN);
+		return 1;
+	} else if (current_time > previous_time + 100 && scroll_display()
+	&& animation_number == 5) {
+		previous_time = current_time;
+		return 1;
+	}
+	return 0;
 }
 
 // Remove the projectile and asteroid when they collide. Incrementing score.
@@ -537,16 +561,29 @@ static void redraw_hit_base(void) {
 	uint32_t start_time = get_current_time();
 	uint32_t current_time = start_time;
 	uint32_t flicker_time = start_time;
-	while(current_time < start_time + 2000) {
+	init_sound();
+	while(current_time < start_time + 1000) {
+		random_sound();
+		display_data(current_time);
 		current_time = get_current_time();
-		if (current_time >= flicker_time + 500) {
-			redraw_base(COLOUR_BASE);
-		} 
-		if (current_time >= flicker_time + 1000) {
+		if (current_time == flicker_time + 250) {
 			redraw_base(COLOUR_BLACK);
+		} 
+		if (current_time == flicker_time + 500) {
+			redraw_base(COLOUR_PROJECTILE);
+		}
+		if (current_time == flicker_time + 750) {
+			redraw_base(COLOUR_GREEN);
 			flicker_time = current_time;
 		}
 	}
+	kill_sound();
+	update_time(start_time - 3);
+	set_clock_ticks(start_time);
+	// Clear a button push or serial input if any are waiting
+	// (The cast to void means the return value is ignored.)
+	(void)button_pushed();
+	clear_serial_input_buffer();
 	redraw_base(COLOUR_BASE);
 }
 

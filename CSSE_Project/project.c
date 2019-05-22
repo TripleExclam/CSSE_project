@@ -18,6 +18,7 @@
 #include "terminalio.h"
 #include "lives.h"
 #include "score.h"
+#include "sound.h"
 #include "timer0.h"
 #include "seven_seg.h"
 #include "game.h"
@@ -72,7 +73,22 @@ void initialise_hardware(void) {
 	sei();
 }
 
+void delay_ms(uint16_t count) {
+	while(count--) {
+		_delay_ms(1);
+
+	}
+}
+
 void splash_screen(void) {
+	uint32_t current_time = get_current_time();
+	uint32_t note_time = current_time;
+	// Enjoy this trash song.
+	static uint16_t theme_song[30] = {123, 146, 164, 155, 146, 185, 174, 146, 164, 155, 
+		138, 155, 116, 20000, 123, 146, 164, 155, 146, 185, 207, 196, 185, 174, 185, 174, 123, 164, 146}; 
+	static uint16_t	delays[30] = {165, 165, 83, 165, 333, 160, 500, 190, 120, 165, 
+		333, 165, 500, 500, 165, 165, 83, 165, 333, 160, 333, 165, 333, 165, 83, 400, 333, 165, 800}; 
+	uint8_t i = 0;
 	// Clear terminal screen and output a message
 	clear_terminal();
 	move_cursor(10,10);
@@ -87,8 +103,19 @@ void splash_screen(void) {
 		set_scrolling_display_text("ASTEROIDS MATTHEW BURTON S45293867", COLOUR_GREEN);
 		// Scroll the message until it has scrolled off the 
 		// display or a button is pushed
+		
 		while(scroll_display()) {
-			_delay_ms(125);
+			current_time = get_current_time();
+			// Every specified time interval, change the sound.
+			if (current_time >= note_time + delays[i]) {
+				init_sound();
+				set_sound(theme_song[i] + 300, 0.5);
+				i = (i + 1) % 30;
+				note_time = current_time;
+			}
+			_delay_ms(100);
+			// Play the sound for 100ms then end it.
+			kill_sound();
 			if(button_pushed() != NO_BUTTON_PUSHED) {
 				return;
 			}
@@ -112,11 +139,7 @@ void new_game(void) {
 	
 	// Initialise lives.
 	init_lives();
-	PORTC &= 1;
-	for (int8_t i = 0; i < get_lives(); i++) {
-		// Set the last four bits to the number of live -> 2^{lives}.
-		PORTC |= (1 << (4 + i));
-	}
+
 	move_cursor(2, 6);
 	printf_P(PSTR("You have %lu lives remaining."), get_lives());
 	
@@ -131,6 +154,7 @@ void play_game(void) {
 	int8_t button;
 	char serial_input, escape_sequence_char;
 	uint8_t characters_into_escape_sequence = 0;
+	uint8_t sound_duration_1 = 0;
 	
 	// Get the current time and remember this as the last time the projectiles
     // were moved.
@@ -186,18 +210,30 @@ void play_game(void) {
 		if(button==3 || escape_sequence_char=='D' || serial_input=='L' || serial_input=='l') {
 			// Button 3 pressed OR left cursor key escape sequence completed OR
 			// letter L (lowercase or uppercase) pressed - attempt to move left
-			move_base(MOVE_LEFT);
+			if(move_base(MOVE_LEFT)) {
+				init_sound();
+				set_sound(600, 2);
+				sound_duration_1 = 255;
+			}
 		} else if(button==2 || escape_sequence_char=='A' || serial_input==' ') {
 			// Button 2 pressed or up cursor key escape sequence completed OR
 			// space bar pressed - attempt to fire projectile
-			fire_projectile();
+			if (fire_projectile()) {
+				init_sound();
+				set_sound(494, 2);
+				sound_duration_1 = 255;
+			}
 		} else if(button==1 || escape_sequence_char=='B') {
 			// Button 1 pressed OR down cursor key escape sequence completed
 			// Ignore at present
 		} else if(button==0 || escape_sequence_char=='C' || serial_input=='R' || serial_input=='r') {
 			// Button 0 pressed OR right cursor key escape sequence completed OR
 			// letter R (lowercase or uppercase) pressed - attempt to move right
-			move_base(MOVE_RIGHT);
+			if(move_base(MOVE_RIGHT)) {
+				init_sound();
+				set_sound(600, 2);
+				sound_duration_1 = 255;
+			}
 		} else if(serial_input == 'p' || serial_input == 'P') {
 			// Unimplemented feature - pause/unpause the game until 'p' or 'P' is
 			// pressed again
@@ -213,8 +249,12 @@ void play_game(void) {
 			}
 			toggle_timer();
 		} 
-		// else - invalid input or we're part way through an escape sequence -
-		// do nothing
+		
+		if (sound_duration_1 == 0) {
+			kill_sound();
+		} else {
+			sound_duration_1--;
+		}
 		
 		current_time = get_current_time();
 		if(!is_game_over() && current_time >= last_move_time + 200) {
@@ -247,7 +287,10 @@ void play_game(void) {
 }
 
 void handle_game_over() {
-	uint32_t current_time;
+	kill_sound();
+	uint32_t current_time = get_current_time();
+	uint8_t game_over_count = 0;
+	game_over_count += game_over_animation(current_time, 1);
 	move_cursor(10,14);
 	printf_P(PSTR("GAME OVER"));
 	move_cursor(10,15);
@@ -255,9 +298,21 @@ void handle_game_over() {
 	while(button_pushed() == NO_BUTTON_PUSHED) {
 		current_time = get_current_time();
 		display_data(current_time);
-		game_over_animation(current_time);
+		if (game_over_count < 16) {
+			game_over_count += game_over_animation(current_time, 1);
+		} else if (game_over_count == 16) {
+			game_over_count += game_over_animation(current_time, 2);
+		}  else if (game_over_count < 100) {
+			game_over_count += game_over_animation(current_time, 3);
+		} else if (game_over_count == 100) {
+			game_over_count += game_over_animation(current_time, 4);
+		} else if (game_over_count < 110) {
+			game_over_count += game_over_animation(current_time, 5);
+		}
 	}
 	init_lives();
 }
+
+
 
 

@@ -1,10 +1,11 @@
-game.d game.o: .././game.c .././scrolling_char_display.h \
+game.d game.o: .././game.c .././seven_seg.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\lib\gcc\avr\5.4.0\include\stdint.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\stdint.h \
- .././pixel_colour.h .././timer0.h .././terminalio.h .././lives.h \
+ .././scrolling_char_display.h .././pixel_colour.h .././timer0.h \
+ .././terminalio.h .././serialio.h .././buttons.h .././lives.h \
  .././score.h .././game.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\inttypes.h \
- .././ledmatrix.h \
+ .././sound.h .././ledmatrix.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\stdlib.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\lib\gcc\avr\5.4.0\include\stddef.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\stdio.h \
@@ -19,17 +20,23 @@ game.d game.o: .././game.c .././scrolling_char_display.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\fuse.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\lock.h
 
-.././scrolling_char_display.h:
+.././seven_seg.h:
 
 c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\lib\gcc\avr\5.4.0\include\stdint.h:
 
 c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\stdint.h:
+
+.././scrolling_char_display.h:
 
 .././pixel_colour.h:
 
 .././timer0.h:
 
 .././terminalio.h:
+
+.././serialio.h:
+
+.././buttons.h:
 
 .././lives.h:
 
@@ -38,6 +45,8 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\
 .././game.h:
 
 c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\inttypes.h:
+
+.././sound.h:
 
 .././ledmatrix.h:
 

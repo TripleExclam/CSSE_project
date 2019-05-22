@@ -11,6 +11,7 @@
 
 void init_display(void);
 void display_data(uint32_t current_time);
+void update_time(uint32_t time);
 void set_value(uint16_t value);
 
 #endif /* SEVEN_SEG_H_*/

@@ -84,6 +84,10 @@ uint32_t get_current_time(void) {
 	return returnValue;
 }
 
+void set_clock_ticks(uint32_t value) {
+	clockTicks = value;
+}
+
 ISR(TIMER0_COMPA_vect) {
 	/* Increment our clock tick count */
 	if (stopwatch_timing) {

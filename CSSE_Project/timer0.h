@@ -33,4 +33,7 @@ void toggle_timer(void);
  */
 uint32_t get_current_time(void);
 
+// Set the timer to a personalised value.
+void set_clock_ticks(uint32_t value);
+
 #endif

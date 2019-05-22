@@ -58,6 +58,6 @@ int8_t is_game_over(void);
 void subtract_life();
 
 // Fancy game over stuff
-void game_over_animation(uint32_t current_time);
+uint8_t game_over_animation(uint32_t current_time, uint8_t animation_number);
 
 #endif

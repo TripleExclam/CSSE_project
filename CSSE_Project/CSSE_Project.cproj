@@ -144,6 +144,9 @@
     <Compile Include="lives.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="sound.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="pixel_colour.h">
       <SubType>compile</SubType>
     </Compile>
@@ -172,6 +175,9 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="seven_seg.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="sound.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="spi.c">

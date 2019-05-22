@@ -10,6 +10,8 @@ ledmatrix.c
 
 lives.c
 
+sound.c
+
 project.c
 
 score.c

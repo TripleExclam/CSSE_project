@@ -20,7 +20,7 @@ void init_display(void) {
 	DDRC = 0xF1;
 	// The side to display on, 0 -> right, 1 -> left
 	seven_seg_cc = 0;
-	// Set previous time to a throwaway value.
+	// Add a random placeholder
 	previous_time = 0;
 }
 
@@ -29,10 +29,10 @@ void display_data(uint32_t current_time) {
 	Wraps around at 100. The refresh rate is every 3 milliseconds. 
 	Might need to use above method to improve performance.
 	*/
-	if (current_time >= previous_time + 3) {
-		// Save the time to be compared with in future.
+	if (current_time > previous_time + 3) {
+		// Save the last time
 		previous_time = current_time;
-		// Switch the digit
+		// Only display the last digit
 		if (display_value < 10) {
 			seven_seg_cc = 0;
 			PORTA = seven_seg_data[display_value % 10];
@@ -51,6 +51,9 @@ void display_data(uint32_t current_time) {
 	}
 }
 
+void update_time(uint32_t time) {
+	previous_time = time;
+}
 
 void set_value(uint16_t value) {
 	// Set the value (first two digits) on the display

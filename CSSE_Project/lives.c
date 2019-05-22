@@ -5,10 +5,16 @@
  */
 
 #include "lives.h"
+#include <avr/io.h>
 
 uint32_t lives;
 
 void init_lives(void) {
+	PORTC &= 1;
+	for (int8_t i = 0; i < 4; i++) {
+		// Set the last four bits to the number of live -> 2^{lives}.
+		PORTC |= (1 << (4 + i));
+	}
 	lives = 4;
 }
 
