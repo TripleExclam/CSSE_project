@@ -88,6 +88,7 @@ int8_t		numProjectiles;
 uint8_t		projectiles[MAX_PROJECTILES];
 int8_t		numAsteroids;
 uint8_t		asteroids[MAX_ASTEROIDS];
+uint8_t		asteroid_speeds[MAX_ASTEROIDS];
 
 ///////////////////////////////////////////////////////////
 // Prototypes for internal information functions 
@@ -146,6 +147,7 @@ void initialise_game(void) {
 		// If we get here, we've now found an x,y location without
 		// an existing asteroid - record the position
 		asteroids[i] = GAME_POSITION(x,y);
+		asteroid_speeds[i] = random() % 4;
 		numAsteroids++;
 	}
 	
@@ -234,56 +236,64 @@ int8_t fire_projectile(void) {
 // Move asteroids down by one position, and remove those that
 // have gone off the bottom or that hit a projectile.
 void advance_asteroids(void) {
-		uint8_t x, y;
-		int8_t asteroidNumber;
-		int8_t projectile_location;
-
-		asteroidNumber = 0;
-		while(asteroidNumber < numAsteroids) {
-			// Get the current position of the asteroid
-			x = GET_X_POSITION(asteroids[asteroidNumber]);
-			y = GET_Y_POSITION(asteroids[asteroidNumber]);
+	static uint8_t speed_number = 0;
+	uint8_t x, y;
+	int8_t asteroidNumber;
+	int8_t projectile_location;
+	
+	speed_number = (speed_number + 1) % 4;
+	asteroidNumber = 0;
+	while(asteroidNumber < numAsteroids) {
+		if ((speed_number + asteroid_speeds[asteroidNumber]) < 3) {
+			asteroidNumber++;
+			continue;
+		}
+		// Get the current position of the asteroid
+		x = GET_X_POSITION(asteroids[asteroidNumber]);
+		y = GET_Y_POSITION(asteroids[asteroidNumber]);
 			
-			// Work out the new position (but don't update the asteroid
-			// location yet - we only do that if we know the move is valid)
-			y = y - 1;
-			if (asteroid_at(x, y) != -1) {
-				y = y + 1;
-			}
+		// Work out the new position (but don't update the asteroid
+		// location yet - we only do that if we know the move is valid)
+		y = y - 1;
+		projectile_location = asteroid_at(x, y);
+		if (projectile_location != -1) {
+			asteroid_speeds[asteroidNumber] = asteroid_speeds[projectile_location];
+			y = y + 1;
+		}
 			
-			// Check if new position would be off the bottom of the display
-			if(y == -1) {
-				// Yes - remove the asteroid. Add a new one in the top row.
+		// Check if new position would be off the bottom of the display
+		if(y == -1) {
+			// Yes - remove the asteroid. Add a new one in the top row.
+			remove_asteroid(asteroidNumber);
+			add_asteroid();
+		} else {
+			// Asteroid is not going off the bottom of the display
+			// CHECK HERE IF THE NEW PROJECTILE LOCATION CORRESPONDS TO
+			// AN ASTEROID LOCATION. IF IT DOES, REMOVE THE PROJECTILE
+			// AND THE ASTEROID.
+			projectile_location = projectile_at(x, y);
+			if (projectile_location != -1) {
+				handle_collision(asteroidNumber, projectile_location);
+			} else if (base_at(x, y)) {
+				// If the asteroid collides with the base, handle the event.
+				subtract_life();
 				remove_asteroid(asteroidNumber);
-				add_asteroid();
+				redraw_hit_base();
 			} else {
-				// Asteroid is not going off the bottom of the display
-				// CHECK HERE IF THE NEW PROJECTILE LOCATION CORRESPONDS TO
-				// AN ASTEROID LOCATION. IF IT DOES, REMOVE THE PROJECTILE
-				// AND THE ASTEROID.
-				projectile_location = projectile_at(x, y);
-				if (projectile_location != -1) {
-					handle_collision(asteroidNumber, projectile_location);
-				} else if (base_at(x, y)) {
-					// If the asteroid collides with the base, handle the event.
-					subtract_life();
-					remove_asteroid(asteroidNumber);
-					redraw_hit_base();
-				} else {
-					// Remove the asteroid from the display
-					redraw_asteroid(asteroidNumber, COLOUR_BLACK);
+				// Remove the asteroid from the display
+				redraw_asteroid(asteroidNumber, COLOUR_BLACK);
 					
-					// Update the asteroid's position
-					asteroids[asteroidNumber] = GAME_POSITION(x,y);
+				// Update the asteroid's position
+				asteroids[asteroidNumber] = GAME_POSITION(x,y);
 					
-					// Redraw the asteroid
-					redraw_asteroid(asteroidNumber, COLOUR_ASTEROID);
+				// Redraw the asteroid
+				redraw_asteroid(asteroidNumber, COLOUR_ASTEROID);
 					
-					// Move on to the next asteroid
-					asteroidNumber++;
-				}
+				// Move on to the next asteroid
+				asteroidNumber++;
 			}
 		}
+	}
 }
 
 
@@ -357,13 +367,6 @@ int8_t is_game_over(void) {
 void subtract_life() {
 	if (get_lives() != 0) {
 		add_to_lives(-1);
-	}
-	// Reset the last seven bits.
-	PORTC &= 1;
-	// Does the lights in the right order.
-	for (int8_t i = 1; i < get_lives() + 1; i++) {
-		// Set the last four bits to the number of live -> 2^{lives}.
-		PORTC |= (1 << (7 - i));
 	}
 	move_cursor(2, 6);
 	printf_P(PSTR("You have %lu lives remaining."), get_lives());
@@ -439,6 +442,7 @@ static void remove_asteroid(int8_t asteroidNumber) {
 		// Asteroid is not the last one in the list
 		// - move the last one in the list to this position
 		asteroids[asteroidNumber] = asteroids[numAsteroids - 1];
+		asteroid_speeds[asteroidNumber] = asteroid_speeds[numAsteroids - 1];
 	}
 	// Last position in asteroids array is no longer used
 	numAsteroids--;
@@ -460,6 +464,7 @@ static void add_asteroid() {
 	// If we get here, we've now found an x,y location without
 	// an existing asteroid - record the position
 	asteroids[numAsteroids] = GAME_POSITION(x,y);
+	asteroid_speeds[numAsteroids] = (uint8_t)(random() % 4);
 	numAsteroids++;
 	
 	// Add the asteroid to the display

@@ -18,6 +18,7 @@ project.d project.o: .././project.c \
  .././ledmatrix.h .././pixel_colour.h .././scrolling_char_display.h \
  .././buttons.h .././serialio.h .././terminalio.h .././lives.h \
  .././score.h .././sound.h .././timer0.h .././seven_seg.h .././game.h \
+ .././joystick.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\util\delay.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\util\delay_basic.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\math.h
@@ -77,6 +78,8 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\lib\
 .././seven_seg.h:
 
 .././game.h:
+
+.././joystick.h:
 
 c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\util\delay.h:
 

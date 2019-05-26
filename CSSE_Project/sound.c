@@ -35,7 +35,7 @@ void kill_sound() {
 
 void init_sound() {
 	// Make pin OC1B be an output
-	if ((PIND & (1<<2)) >> 2) {
+	if ((PIND & (1 << 6)) >> 6) {
 		DDRD |= (1 << 4);
 	
 		// Set up timer/counter 1 for Fast PWM, counting from 0 to the value in OCR1A

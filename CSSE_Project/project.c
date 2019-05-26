@@ -22,6 +22,7 @@
 #include "timer0.h"
 #include "seven_seg.h"
 #include "game.h"
+#include "joystick.h"
 
 #define F_CPU 8000000L
 #include <util/delay.h>
@@ -139,6 +140,8 @@ void new_game(void) {
 	
 	// Initialise lives.
 	init_lives();
+		
+	init_joystick();
 
 	move_cursor(2, 6);
 	printf_P(PSTR("You have %lu lives remaining."), get_lives());
@@ -150,8 +153,9 @@ void new_game(void) {
 }
 
 void play_game(void) {
-	uint32_t current_time, last_move_time, last_move_asteroid;
+	uint32_t current_time, last_move_time, last_move_asteroid, joystick_move_time;
 	int8_t button;
+	uint8_t joystick;
 	char serial_input, escape_sequence_char;
 	uint8_t characters_into_escape_sequence = 0;
 	uint8_t sound_duration_1 = 0;
@@ -161,10 +165,10 @@ void play_game(void) {
 	current_time = get_current_time();
 	last_move_time = current_time;
 	last_move_asteroid = current_time;
+	joystick_move_time = current_time;
 	
 	// We play the game until it's over
 	while(!is_game_over()) {
-		
 		// Check for input - which could be a button push or serial input.
 		// Serial input may be part of an escape sequence, e.g. ESC [ D
 		// is a left cursor key press. At most one of the following three
@@ -176,7 +180,7 @@ void play_game(void) {
 		serial_input = -1;
 		escape_sequence_char = -1;
 		button = button_pushed();
-		
+		joystick = joystick_moved();
 		if(button == NO_BUTTON_PUSHED) {
 			// No push button was pushed, see if there is any serial input
 			if(serial_input_available()) {
@@ -207,7 +211,7 @@ void play_game(void) {
 		}
 		
 		// Process the input. 
-		if(button==3 || escape_sequence_char=='D' || serial_input=='L' || serial_input=='l') {
+		if(button==3 || escape_sequence_char=='D' || serial_input=='L' || serial_input=='l' || joystick==1) {
 			// Button 3 pressed OR left cursor key escape sequence completed OR
 			// letter L (lowercase or uppercase) pressed - attempt to move left
 			if(move_base(MOVE_LEFT)) {
@@ -215,7 +219,7 @@ void play_game(void) {
 				set_sound(600, 2);
 				sound_duration_1 = 255;
 			}
-		} else if(button==2 || escape_sequence_char=='A' || serial_input==' ') {
+		} else if(button==2 || escape_sequence_char=='A' || serial_input==' ' || joystick==3) {
 			// Button 2 pressed or up cursor key escape sequence completed OR
 			// space bar pressed - attempt to fire projectile
 			if (fire_projectile()) {
@@ -226,7 +230,8 @@ void play_game(void) {
 		} else if(button==1 || escape_sequence_char=='B') {
 			// Button 1 pressed OR down cursor key escape sequence completed
 			// Ignore at present
-		} else if(button==0 || escape_sequence_char=='C' || serial_input=='R' || serial_input=='r') {
+		} else if(button==0 || escape_sequence_char=='C' || serial_input=='R' || serial_input=='r' 
+		|| joystick==2) {
 			// Button 0 pressed OR right cursor key escape sequence completed OR
 			// letter R (lowercase or uppercase) pressed - attempt to move right
 			if(move_base(MOVE_RIGHT)) {
@@ -238,7 +243,10 @@ void play_game(void) {
 			// Unimplemented feature - pause/unpause the game until 'p' or 'P' is
 			// pressed again
 			toggle_timer();
+			kill_sound();
 			while(1) {
+				// Get the button push and discard it
+				button_pushed();
 				if(serial_input_available()) {
 					// Serial data was available - read the data from standard input
 					serial_input = fgetc(stdin);
@@ -250,6 +258,7 @@ void play_game(void) {
 			toggle_timer();
 		} 
 		
+		// Check if it is time to kill the sound
 		if (sound_duration_1 == 0) {
 			kill_sound();
 		} else {
@@ -262,11 +271,18 @@ void play_game(void) {
 			// the projectiles - move them - and keep track of the time we 
 			// moved them
 			advance_projectiles();
-			
 			last_move_time = current_time;
 		}
-
-		if(current_time >= last_move_asteroid + 1000 - get_score() * 5) {
+		
+		if(current_time >= joystick_move_time + 50) {
+			// 500ms (0.5 second) has passed since the last time we moved
+			// the projectiles - move them - and keep track of the time we
+			// moved them
+			step_joystick();
+			joystick_move_time = current_time;
+		}
+	
+		if(current_time >= last_move_asteroid + 1500 - get_score() * 10) {
 			// 1000ms (1 seconds) has passed since the last time we moved
 			// the asteroids - move them - and keep track of the time we
 			// moved them

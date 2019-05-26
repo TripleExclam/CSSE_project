@@ -14,14 +14,12 @@ uint32_t previous_time;
 volatile uint8_t seven_seg_cc;
 
 void init_display(void) {
-	// Set Port A to output the digits.
-	DDRA = 0xFF;
+	// Set Port C to output the digits.
+	DDRC = 0xFF;
 	// Port C pin 0 to oscillate between digits.
-	DDRC = 0xF1;
+	DDRD |= (1 << 3);
 	// The side to display on, 0 -> right, 1 -> left
 	seven_seg_cc = 0;
-	// Add a random placeholder
-	previous_time = 0;
 }
 
 void display_data(uint32_t current_time) {
@@ -35,19 +33,19 @@ void display_data(uint32_t current_time) {
 		// Only display the last digit
 		if (display_value < 10) {
 			seven_seg_cc = 0;
-			PORTA = seven_seg_data[display_value % 10];
+			PORTC = seven_seg_data[display_value % 10];
 		} else {
 			seven_seg_cc = 1 - seven_seg_cc;
 			if (seven_seg_cc == 0) {
 				// Set the first digit
-				PORTA = seven_seg_data[display_value % 10];
+				PORTC = seven_seg_data[display_value % 10];
 			} else {
 				// Set the second digit
-				PORTA = seven_seg_data[(display_value / 10) % 10];
+				PORTC = seven_seg_data[(display_value / 10) % 10];
 			}
 		}
 		/* Output the digit selection (CC) bit */
-		PORTC = (PORTC & ~1) | seven_seg_cc;
+		PORTD = (PORTD & ~(1 << 3)) | (seven_seg_cc << 3);
 	}
 }
 

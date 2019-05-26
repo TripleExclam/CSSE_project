@@ -10,6 +10,8 @@ ledmatrix.c
 
 lives.c
 
+joystick.c
+
 sound.c
 
 project.c
